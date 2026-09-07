@@ -1,0 +1,45 @@
+name: build-ragflow-v0.26.1-arm64
+
+on:
+  workflow_dispatch: {}   # 手动在 Actions 页点 Run workflow
+
+jobs:
+  build:
+    # 原生 ARM64 运行器（公开仓库免费可用）
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: 检出 RAGFlow v0.26.1 源码
+        uses: actions/checkout@v4
+        with:
+          repository: infiniflow/ragflow
+          ref: v0.26.1
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 下载依赖资源（deepdoc 模型等，约 1-2GB）
+        run: |
+          python3 -m pip install -q nltk huggingface-hub
+          python3 download_deps.py
+
+      - name: 构建 deps 依赖镜像
+        run: docker build -f Dockerfile.deps -t infiniflow/ragflow_deps:latest .
+
+      - name: 构建 ragflow 主镜像（arm64）
+        run: docker build -f Dockerfile -t ragflow:v0.26.1-arm64 .
+
+      - name: 导出镜像并分块
+        run: |
+          docker save -o ragflow_v0.26.1_arm64.tar ragflow:v0.26.1-arm64
+          ls -lh ragflow_v0.26.1_arm64.tar
+          split -b 1900M -d ragflow_v0.26.1_arm64.tar ragflow_v0.26.1_arm64.tar.part
+          ls -lh ragflow_v0.26.1_arm64.tar.part*
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragflow-v0.26.1-arm64
+          path: ragflow_v0.26.1_arm64.tar.part*
+          retention-days: 3
