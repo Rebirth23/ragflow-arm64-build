@@ -1,44 +1,43 @@
-name: build-ragflow-v0.19.1-arm64
+name: build-ragflow-v0.26.1-arm64
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
     steps:
-      - name: 检出 RAGFlow v0.19.1 源码
+      - name: Checkout RAGFlow v0.26.1
         uses: actions/checkout@v4
         with:
           repository: infiniflow/ragflow
-          ref: v0.19.1
+          ref: v0.26.1
 
-      - name: 安装 Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
-      - name: 下载依赖资源（deepdoc 模型等）
+      - name: Download deps
         run: |
           python3 -m pip install -q nltk huggingface-hub
           python3 download_deps.py
 
-      - name: 构建 deps 依赖镜像
+      - name: Build deps image
         run: docker build -f Dockerfile.deps -t infiniflow/ragflow_deps:latest .
 
-      - name: 构建 ragflow 主镜像（arm64）
-        run: docker build -f Dockerfile -t ragflow:v0.19.1-arm64 .
+      - name: Build ragflow image arm64
+        run: docker build -f Dockerfile -t ragflow:v0.26.1-arm64 .
 
-      - name: 导出镜像并分块
+      - name: Save and split image
         run: |
-          docker save -o ragflow_v0.19.1_arm64.tar ragflow:v0.19.1-arm64
-          ls -lh ragflow_v0.19.1_arm64.tar
-          split -b 1900M -d ragflow_v0.19.1_arm64.tar ragflow_v0.19.1_arm64.tar.part
-          ls -lh ragflow_v0.19.1_arm64.tar.part*
+          docker save -o ragflow_v0.26.1_arm64.tar ragflow:v0.26.1-arm64
+          split -b 1900M -d ragflow_v0.26.1_arm64.tar ragflow_v0.26.1_arm64.tar.part
+          ls -lh ragflow_v0.26.1_arm64.tar.part*
 
-      - name: 上传构建产物
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ragflow-v0.19.1-arm64
-          path: ragflow_v0.19.1_arm64.tar.part*
+          name: ragflow-v0.26.1-arm64
+          path: ragflow_v0.26.1_arm64.tar.part*
           retention-days: 3
