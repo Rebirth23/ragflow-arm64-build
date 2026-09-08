@@ -21,9 +21,10 @@ jobs:
       - name: Download deps
         run: |
           python3 -m pip install -q nltk huggingface-hub
-          # v0.19.1 的 download_deps.py 缺 User-Agent，先补上避免 403
           python3 <<'PYEOF'
           s = open('download_deps.py').read()
+
+          # 1) 补 User-Agent（v0.19.1 缺，archive.ubuntu.com 会 403 默认 urllib UA）
           if 'Mozilla/5.0' not in s:
               anchor = 'urls = get_urls(args.china_mirrors)'
               patch = ("opener = urllib.request.build_opener()\n"
@@ -31,10 +32,17 @@ jobs:
                        "    urllib.request.install_opener(opener)\n"
                        "    " + anchor)
               s = s.replace(anchor, patch)
-              open('download_deps.py', 'w').write(s)
-          print('UA patch done')
+
+          # 2) 把默认源里的 bit.ly 短链换成可靠的 storage.googleapis.com
+          s = s.replace('https://bit.ly/chrome-linux64-121-0-6167-85',
+                        'https://storage.googleapis.com/chrome-for-testing-public/121.0.6167.85/linux64/chrome-linux64.zip')
+          s = s.replace('https://bit.ly/chromedriver-linux64-121-0-6167-85',
+                        'https://storage.googleapis.com/chrome-for-testing-public/121.0.6167.85/linux64/chromedriver-linux64.zip')
+
+          open('download_deps.py', 'w').write(s)
+          print('patch done')
           PYEOF
-          python3 download_deps.py --china-mirrors
+          python3 download_deps.py
 
       - name: Build deps image
         run: |
