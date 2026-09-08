@@ -1,0 +1,59 @@
+name: build-ragflow-v0.19.1-arm64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout RAGFlow v0.19.1
+        uses: actions/checkout@v4
+        with:
+          repository: infiniflow/ragflow
+          ref: v0.19.1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download deps
+        run: |
+          python3 -m pip install -q nltk huggingface-hub
+          # v0.19.1 的 download_deps.py 缺 User-Agent，先补上避免 403
+          python3 <<'PYEOF'
+          s = open('download_deps.py').read()
+          if 'Mozilla/5.0' not in s:
+              anchor = 'urls = get_urls(args.china_mirrors)'
+              patch = ("opener = urllib.request.build_opener()\n"
+                       "    opener.addheaders = [('User-Agent', 'Mozilla/5.0')]\n"
+                       "    urllib.request.install_opener(opener)\n"
+                       "    " + anchor)
+              s = s.replace(anchor, patch)
+              open('download_deps.py', 'w').write(s)
+          print('UA patch done')
+          PYEOF
+          python3 download_deps.py --china-mirrors
+
+      - name: Build deps image
+        run: |
+          test -d huggingface.co || { echo "ERROR: huggingface.co 未下载成功"; ls -la; exit 1; }
+          test -d nltk_data || { echo "ERROR: nltk_data 未下载成功"; ls -la; exit 1; }
+          docker build -f Dockerfile.deps -t infiniflow/ragflow_deps:latest .
+
+      - name: Build ragflow image arm64
+        run: docker build -f Dockerfile -t ragflow:v0.19.1-arm64 .
+
+      - name: Save and split image
+        run: |
+          docker save -o ragflow_v0.19.1_arm64.tar ragflow:v0.19.1-arm64
+          split -b 1900M -d ragflow_v0.19.1_arm64.tar ragflow_v0.19.1_arm64.tar.part
+          ls -lh ragflow_v0.19.1_arm64.tar.part*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragflow-v0.19.1-arm64
+          path: ragflow_v0.19.1_arm64.tar.part*
+          retention-days: 3
