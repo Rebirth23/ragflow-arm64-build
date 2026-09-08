@@ -33,11 +33,11 @@ jobs:
                        "    " + anchor)
               s = s.replace(anchor, patch)
 
-          # 2) 把默认源里的 bit.ly 短链换成可靠的 storage.googleapis.com
-          s = s.replace('https://bit.ly/chrome-linux64-121-0-6167-85',
-                        'https://storage.googleapis.com/chrome-for-testing-public/121.0.6167.85/linux64/chrome-linux64.zip')
-          s = s.replace('https://bit.ly/chromedriver-linux64-121-0-6167-85',
-                        'https://storage.googleapis.com/chrome-for-testing-public/121.0.6167.85/linux64/chromedriver-linux64.zip')
+          # 2) 把默认源里的 bit.ly 短链换成 [url, 文件名] 形式的 storage.googleapis.com 地址
+          s = s.replace('"https://bit.ly/chrome-linux64-121-0-6167-85"',
+                        '["https://storage.googleapis.com/chrome-for-testing-public/121.0.6167.85/linux64/chrome-linux64.zip", "chrome-linux64-121-0-6167-85"]')
+          s = s.replace('"https://bit.ly/chromedriver-linux64-121-0-6167-85"',
+                        '["https://storage.googleapis.com/chrome-for-testing-public/121.0.6167.85/linux64/chromedriver-linux64.zip", "chromedriver-linux64-121-0-6167-85"]')
 
           open('download_deps.py', 'w').write(s)
           print('patch done')
