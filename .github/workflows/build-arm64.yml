@@ -23,8 +23,13 @@ jobs:
           python3 -m pip install -q nltk huggingface-hub
           python3 download_deps.py
 
-      - name: Build deps image
-        run: docker build -f Dockerfile.deps -t infiniflow/ragflow_deps:latest .
+      - name: Build deps image (temporarily disable .dockerignore)
+        run: |
+          test -d huggingface.co || { echo "ERROR: huggingface.co 未下载成功"; ls -la; exit 1; }
+          test -d nltk_data || { echo "ERROR: nltk_data 未下载成功"; ls -la; exit 1; }
+          mv .dockerignore .dockerignore.bak
+          docker build -f Dockerfile.deps -t infiniflow/ragflow_deps:latest .
+          mv .dockerignore.bak .dockerignore
 
       - name: Build ragflow image arm64
         run: docker build -f Dockerfile -t ragflow:v0.26.1-arm64 .
