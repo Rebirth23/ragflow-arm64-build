@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Download deps (slim: skip embedding models)
+      - name: Download deps (slim, skip embedding models)
         run: |
           python3 -m pip install -q nltk huggingface-hub
           python3 <<'PYEOF'
